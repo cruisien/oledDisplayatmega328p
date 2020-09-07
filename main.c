@@ -70,7 +70,8 @@ ISR (TIMER1_COMPA_vect);
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void BALL(int8_t X, int8_t Y, uint8_t R);
 uint8_t DIRECTION (uint16_t VECTOR);
-uint16_t COLLISION (int8_t X, int8_t Y, uint8_t R, uint8_t DIRECTION, uint16_t vec);
+uint16_t COLLISIONBORDER (int8_t X, int8_t Y, uint8_t R, uint8_t DIRECTION, uint16_t vec);
+uint16_t COLISSIONPL (int8_t X, int8_t Y, uint8_t R, uint8_t DIRECTION, uint16_t vec, uint8_t Px, uint8_t Py, uint8_t Ph, uint8_t Pb);
 
 
 
@@ -79,7 +80,7 @@ uint16_t COLLISION (int8_t X, int8_t Y, uint8_t R, uint8_t DIRECTION, uint16_t v
 int main(void)
 {
 	int8_t ballx = 30;//ball coordinate x
-	int8_t bally = 100;//ball coordinate y
+	int8_t bally = 70;//ball coordinate y
 	uint8_t ballr = 3;//ball radius
 	uint8_t speedplatform = 0;//speed platform
 	uint8_t speedball = 0;//speed ball
@@ -88,7 +89,10 @@ int main(void)
 	uint8_t plbreit = 20;//platform widht
 	uint8_t plhoch = 4;
 	uint8_t balldirection = 4;//ball direction
-	uint16_t ballvektor = 315;//ball movment vector
+	uint16_t ballvektor = 45;//ball movment vector
+	uint8_t plhigh = 0;
+	uint8_t boxy = 70;
+	uint8_t boxes [5][5] =  { {70, boxy, 6, 3, 1}, {70, boxy, 6, 3, 1}, {70, boxy, 6, 3, 1}, {70, boxy, 6, 3, 1}, {70, boxy, 
 	
 	DDRB |= (1<<DC) | (1<<CS) | (1<<MOSI) |( 1<<SCK); 	// All outputs
 	PORTB = (1<<SCK) | (1<<CS) | (1<<DC);          		// clk, dc, and cs high
@@ -178,7 +182,8 @@ int main(void)
 			case 8:if(ballx > (128 - ballr)){ballx = (128 - ballr);}; if(bally > (128 - ballr)){bally = (128 - ballr);}; break;	
 		}
 		
-		ballvektor  = COLLISION(ballx, bally, ballr, balldirection, ballvektor);
+		ballvektor  = COLLISIONBORDER(ballx, bally, ballr, balldirection, ballvektor);
+		ballvektor = COLISSIONPL(ballx, bally, ballr, balldirection, ballvektor, plkord, plhigh, plhoch, plbreit);
 		balldirection = DIRECTION(ballvektor);
 		
 		
@@ -259,7 +264,7 @@ uint8_t DIRECTION (uint16_t VECTOR){
 	return dir;
 }
 
-uint16_t COLLISION (int8_t X, int8_t Y, uint8_t R, uint8_t DIRECTION, uint16_t vec){
+uint16_t COLLISIONBORDER (int8_t X, int8_t Y, uint8_t R, uint8_t DIRECTION, uint16_t vec){
 		uint8_t wall = 128;
 		uint16_t vector = 0;
 		uint8_t yes = 0;
@@ -280,4 +285,24 @@ uint16_t COLLISION (int8_t X, int8_t Y, uint8_t R, uint8_t DIRECTION, uint16_t v
 		}
 }
 
+uint16_t COLISSIONPL (int8_t X, int8_t Y, uint8_t R, uint8_t DIRECTION, uint16_t vec, uint8_t Px, uint8_t Py, uint8_t Ph, uint8_t Pb){
+	uint16_t vector;
+	uint8_t yes = 0;
+	if(Y == (Py + Ph + R)){
+		if(X > Px){
+			if(X < (Px + Pb)){
+				switch(DIRECTION){
+					case 4: vector = 45; yes = 1; break;
+					case 6: vector = 315; yes = 1; break;
+				}
+		}
+	}
+}
+	if(yes == 1){
+			return (vector);
+		}
+	else{
+			return (vec);
+		}
+	}
 
