@@ -68,9 +68,9 @@ char stringbuffer[20]; // buffer to store string
 
 ISR (TIMER1_COMPA_vect);
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void BALL(uint8_t X, uint8_t Y, uint8_t R);
+void BALL(int8_t X, int8_t Y, uint8_t R);
 uint8_t DIRECTION (uint16_t VECTOR);
-uint16_t ballvektor = 180;//ball movment vector
+uint16_t COLLISION (int8_t X, int8_t Y, uint8_t R, uint8_t DIRECTION, uint16_t vec);
 
 
 
@@ -78,16 +78,17 @@ uint16_t ballvektor = 180;//ball movment vector
 
 int main(void)
 {
-	uint8_t ballx = 50;//ball coordinate x
-	uint8_t bally = 50;//ball coordinate y
+	int8_t ballx = 30;//ball coordinate x
+	int8_t bally = 100;//ball coordinate y
 	uint8_t ballr = 3;//ball radius
 	uint8_t speedplatform = 0;//speed platform
 	uint8_t speedball = 0;//speed ball
 	uint8_t start = 0;//startvar
 	uint8_t plkord = 0;//platform cordinate left bottom corner
-	uint8_t plgross = 20;//platform widht
+	uint8_t plbreit = 20;//platform widht
+	uint8_t plhoch = 4;
 	uint8_t balldirection = 4;//ball direction
-	uint16_t ballvektor = 180;//ball movment vector
+	uint16_t ballvektor = 315;//ball movment vector
 	
 	DDRB |= (1<<DC) | (1<<CS) | (1<<MOSI) |( 1<<SCK); 	// All outputs
 	PORTB = (1<<SCK) | (1<<CS) | (1<<DC);          		// clk, dc, and cs high
@@ -126,8 +127,8 @@ int main(void)
 
 	setup();
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------
-	speedplatform = speedplatform + ballr;
-	speedball = speedplatform / 2;
+	speedplatform = 3;
+	speedball = 2;
 	BALL(ballx, bally, ballr);
 	while(1){
 	if(TASTE_ROT > 0){
@@ -138,7 +139,7 @@ int main(void)
 		//shift platform right
 		MoveTo(plkord,0);
 		fore  = WHITE;
-		FillRect(plgross,4);
+		FillRect(plbreit, plhoch);
 		plkord = plkord + speedplatform;
 		//screen borden not ovrepassed
 		if(plkord >= 108){
@@ -156,35 +157,54 @@ int main(void)
 		//shift platform left
 		MoveTo(plkord,0);
 		fore = WHITE;
-		FillRect(plgross,4);
+		FillRect(plbreit, plhoch);
 		//screen borden not overpassed
 		if(plkord <= speedplatform){
 			plkord = speedplatform;
 		}
 		plkord = plkord - speedplatform;
 		//remove platform trajectory
-		MoveTo((plkord + plgross),0);
+		MoveTo((plkord + plbreit),0);
 		fore = BLACK;
 		FillRect(speedplatform,5);
 		
 		
 	}
 	if(start == 1){
+		switch(balldirection){
+			case 2:if(ballx < ballr){ballx = ballr;}; if(bally > (128 - ballr)){bally = (128 - ballr);}; break;
+			case 4:if(ballx < ballr){ballx = ballr;}; if(bally < ballr){bally = ballr;}; break;
+			case 6:if(ballx	> (128 - ballr)){ballx = (128 - ballr);}; if(bally < ballr){bally = ballr;}; break;
+			case 8:if(ballx > (128 - ballr)){ballx = (128 - ballr);}; if(bally > (128 - ballr)){bally = (128 - ballr);}; break;	
+		}
+		
+		ballvektor  = COLLISION(ballx, bally, ballr, balldirection, ballvektor);
 		balldirection = DIRECTION(ballvektor);
+		
+		
 		switch(balldirection){
 			case 1: bally = bally + speedball; break;
 			case 2: bally = bally + (speedball / 2); ballx = ballx - (speedball / 2); break;
 			case 3: ballx = ballx - speedball; break;
 			case 4: bally = bally - (speedball / 2); ballx = ballx - (speedball / 2); break;
 			case 5: bally = bally - speedball; break;
-			case 6: ballx = ballx - (speedball / 2); bally = bally + (speedball / 2); break;
+			case 6: ballx = ballx + (speedball / 2); bally = bally - (speedball / 2); break;
 			case 7: bally = bally + speedball; break;
 			case 8: bally = bally + (speedball / 2); ballx = ballx + (speedball / 2); break;
 		}
+		
+		
 		BALL(ballx, bally, ballr);
 		
+		
+		
+		
+		
+		
+		
+		
+		
 	}
-	
 	
 	
 
@@ -197,8 +217,10 @@ ISR (TIMER1_COMPA_vect)
 	
 }
 //output ball x y and radius with filling
-void BALL(uint8_t X, uint8_t Y, uint8_t R){
+void BALL(int8_t X, int8_t Y, uint8_t R){
+	//ball color
 	fore = GREEN;
+	//ball movement
 	switch(R){
 		case 10:glcd_draw_circle(X, Y, 10);
 		case 9:glcd_draw_circle(X, Y, 9);
@@ -211,6 +233,15 @@ void BALL(uint8_t X, uint8_t Y, uint8_t R){
 		case 2:glcd_draw_circle(X, Y, 2);
 		case 1:glcd_draw_circle(X, Y, 1);
 	}
+	//remove ball trajectory
+	fore = BLACK;
+	switch(R / 2){
+		case 4:glcd_draw_circle(X, Y, (R + 5));
+		case 3:glcd_draw_circle(X, Y, (R + 4));
+		case 2:glcd_draw_circle(X, Y, (R + 3));
+		case 1:glcd_draw_circle(X, Y, (R + 2)); glcd_draw_circle(X, Y, (R + 1));
+	}
+	
 }
 //calculation direction from vector variable degree
 uint8_t DIRECTION (uint16_t VECTOR){
@@ -227,4 +258,26 @@ uint8_t DIRECTION (uint16_t VECTOR){
 	}
 	return dir;
 }
+
+uint16_t COLLISION (int8_t X, int8_t Y, uint8_t R, uint8_t DIRECTION, uint16_t vec){
+		uint8_t wall = 128;
+		uint16_t vector = 0;
+		uint8_t yes = 0;
+		uint8_t top = 128;
+		wall = wall - R;
+		top = top - R;
+		switch(DIRECTION){
+			case 2:if(X == R){vector = 315; yes = 1;}; if(Y == top){vector = 135; yes = 1;}; break;
+			case 4:if(X == R){vector = 225; yes = 1;}; if(Y == R){vector = 45; yes = 1;}; break;
+			case 6:if(X	== wall){vector = 135; yes = 1;}; if(Y == R){vector = 315; yes = 1;}; break;
+			case 8:if(X == wall){vector = 45; yes = 1;}; if(Y == top){vector = 225; yes = 1;}; break;
+		}
+		if(yes == 1){
+			return (vector);
+		}
+		else{
+			return (vec);
+		}
+}
+
 
